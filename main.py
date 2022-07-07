@@ -7,6 +7,7 @@ import os
 from PIL import Image, ImageEnhance
 import numpy as np
 import datetime
+import db_record
 #import glob
 #import shutil
 #import moviepy.editor as mpy
@@ -20,6 +21,8 @@ file_counter=0 #здесь будет храниться номrер кадра
 VideoDir = 'video'
 record_icon_img = cv2.imread('icon.png', cv2.IMREAD_UNCHANGED)
 record_icon = Image.fromarray(record_icon_img)
+date_start=datetime.datetime.now()
+date_end=datetime.datetime.now()
 
 rtspUrl = "rtsp://root:12345678@192.168.35.202/axis-media/media.amp?videocodec=H264&resolution=1024x768&compression=30&fps=30&videokeyframeinterval=30&event=on"
 filePath= "C:/Users/praktika/PycharmProjects/video/"
@@ -97,6 +100,7 @@ def save_frame(img):
    # file_name="%05d" % file_counter
     #cv2.imwrite(filePath + 'Frame_'+ number +".jpg", img)
     cv2.imwrite(filePath+ "frame%d.jpg" % number, img)
+    return str(filePath+ "frame%d.jpg" % number)
     #file_counter += 1
 
 def size_record():
@@ -104,6 +108,7 @@ def size_record():
     size_video = str(filePath+'/Video_'+str(number-1)+'.avi')
     s=os.path.getsize(size_video)
     print('File size:', s, 'bytes')
+    return s
 
 
 def add_record(img):
@@ -133,10 +138,13 @@ while (True):
         if not isRecord:
             start_recording()
             save_frame(image)
+            #insert_record(channel, record_type, record, record_path, datetime_start, datetime_stop, record_length,record_extension, snapshot_path)
+
             isRecord = True
         else:
             stop_recording()
             size_record()
+            db_record.insert_record(numberCanal, "user", number - 1, str(filePath + '/Video_' + str(number - 1) + '.avi'), date_start, date_end, size_record(), 'avi', save_frame())
             isRecord = False
 
     if k == 27:
