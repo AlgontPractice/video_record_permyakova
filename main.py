@@ -100,8 +100,8 @@ def save_frame(img):
     global number
     # file_name="%05d" % file_counter
     # cv2.imwrite(filePath + 'Frame_'+ number +".jpg", img)
-    cv2.imwrite(filePath + "frame%d.jpg" % number-1, img)
-    return str(filePath + "frame%d.jpg" % number-1)
+    cv2.imwrite(filePath + "frame%d.jpg" % (number-1), img)
+    return str(filePath + "frame%d.jpg" % (number-1))
     # file_counter += 1
 
 

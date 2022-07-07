@@ -12,6 +12,7 @@ con = psycopg2.connect(
 
 def insert_record(channel, record_type, record, record_path, datetime_start, datetime_stop, record_length,
                   record_extension, snapshot_path):
+
     cur = con.cursor()
     try:
         cur.execute("INSERT INTO record_info (id_channel, record_type, id_record, record_path, datetime_start, "
