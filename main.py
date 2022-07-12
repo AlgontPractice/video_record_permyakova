@@ -1,113 +1,114 @@
-import glob
-import shutil
-
-import ffmpeg
+import sys
+from flask import Flask
+from flask_jsonrpc import JSONRPC
 import cv2
+import time
+import subprocess
 import os
-from PIL import Image, ImageEnhance
-import numpy as np
+import psutil
+from shlex import split
 import datetime
-import db_record
-#import glob
-#import shutil
-#import moviepy.editor as mpy
+import multiprocessing
 
-isRecord = False
-out = None
-number = 0
-numberCanal=1
-#VideoDir = 'video' #директория для записи кадров
-record_icon_img = cv2.imread('icon.png', cv2.IMREAD_UNCHANGED)
-record_icon = Image.fromarray(record_icon_img)
-date_start=datetime.datetime.now()
-date_end=datetime.datetime.now()
-
+numberCanal = 1
+date_start = datetime.datetime.now()
+date_end = datetime.datetime.now()
+filePath = "C:/Praktika/abc/"
+fileName = "Video_"
+number = 1
+flag = True
 rtspUrl = "rtsp://root:12345678@192.168.35.202/axis-media/media.amp?videocodec=H264&resolution=1024x768&compression=30&fps=30&videokeyframeinterval=30&event=on"
-filePath= "C:/Users/praktika/PycharmProjects/video/"
 frame = cv2.VideoCapture(rtspUrl)
-if (frame.isOpened ()):
-	print("Open camera!")
-else:
-     print("Fail to open camera!")
 
+app = Flask('record')
+# Flask-JSONRPC
+jsonrpc = JSONRPC(app, '/api_record', enable_web_browsable_api=True)
+#file = "c:/Praktika/abc/out6.mp4"
+
+@jsonrpc.method('launch_start')
+def launch_start() -> int:
+    #multiprocessing.context.Process
+    pr1 = multiprocessing.Process(target=launch)
+    pr1.start()
+    return pr1.pid
+
+@jsonrpc.method('echo')
+def echo(message: str) -> str:
+    return message
+
+@jsonrpc.method('launch_end')
+def launch_end(pr1: int):
+    p = psutil.Process(pr1)
+    p.terminate()
+
+
+def launch():
+    global frame
+    v=1
+    while (v != 2):
+        status, image = frame.read()
+        pr = start_recording()
+        save_frame(image)
+        stop_recording(pr)
+        size_record()
+        v += 1
 
 def start_recording():
-    global out
-    global number
     global date_start
-    #Получаем размеры видео, которое идет с камеры
-    frame_width = int(frame.get(3))
-    frame_height = int(frame.get(4))
-    print("start")
-    f=open("name.txt")
-    file_name  = f.read()
-    number  = int(file_name)
-    out = cv2.VideoWriter(filePath + 'Video_' + file_name + '.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 20, (frame_width, frame_height), True)
-    f.close()
-    date_start = datetime.datetime.now()
-
-
-def stop_recording():
-   global out
-   global number
-   global date_end
-   global date_start
-   out.release()
-   print(number)
-   f=open("name.txt", 'w')
-   number +=1
-   number1 =str(number)
-   f.write(number1)
-   f.close()
-   date_end = datetime.datetime.now()
-
-
-def save_frame(img):
+    global filePath
+    global fileName
     global number
-    cv2.imwrite(filePath+ "frame%d.jpg" % number, img)
-    return str(filePath+ "frame%d.jpg" % number)
+    global proc
+
+    date_start = datetime.datetime.now()
+    date_start = str(date_start).partition('.')[0]
+    date_start = date_start.replace(':', '_')
+    date_start = date_start.replace(' ', '_time_')
+    date_start1 = str(filePath + date_start + ".mp4")
+   # date_start1 = str(datetime.datetime.strptime(date_start,'%Y-%m-%d-%H-%M-%S'))
+    #date_start1 = str(date_start.strftime('%Y-%m-%d_%H-%M'))
+    #date_start2 = date3.replace(':', '_')
+    #print(date_start1)
+    #date_
+    cmd = f"ffmpeg -y -i '{'rtsp://root:12345678@192.168.35.202/axis-media/media.amp?videocodec=H264&resolution=1024x768&compression=30&fps=30&videokeyframeinterval=30&event=on'}' -movflags +frag_keyframe+separate_moof+omit_tfhd_offset+empty_moov -acodec copy -vcodec copy {date_start1}"
+    #cmd = f"ffmpeg -y -i '{'rtsp://root:12345678@192.168.35.202/axis-media/media.amp?videocodec=H264&resolution=1024x768&compression=30&fps=30&videokeyframeinterval=30&event=on'}' -acodec copy -vcodec copy c:/Praktika/abc/out6.mp4"
+    proc = subprocess.Popen(split(cmd))
+    time.sleep(20)
+    return proc
+
+def stop_recording(pr):
+    global date_end
+    global number
+    pr.terminate()
+   # os.kill(pr, signal.CTRL_C_EVENT)
+    date_end = datetime.datetime.now()
+    # f = open("name.txt", 'w')
+    # number += 1
+    # number1 = str(number)
+    # f.write(number1)
+    # f.close()
 
 
 def size_record():
-    global number
-    size_video = str(filePath+'/Video_'+str(number-1)+'.avi')
-    s=os.path.getsize(size_video)
+    global filePath
+    global fileName
+    size_video = str(filePath + date_start + '.mp4')
+    s = round((os.path.getsize(size_video) / (1024*2)), 2)
     print('File size:', s, 'bytes')
     return s
 
 
-def add_record(img):
-    #Переводим массив изображения в объект Pillow и преобразуем в тип RGBA с маской прозрачности
-    img_out=Image.fromarray(img)
-    img_out.paste(record_icon, (0, 50))
-    return np.asarray(img_out, dtype='uint8')
+def save_frame(img):
+    global number
+    cv2.imwrite(filePath + "frame_" + date_start + ".jpg", img)
+    #return str(filePath + "frame%d.jpg" % (number-1))
 
-########################################################################
 
-while (True):
-    status, image = frame.read()
+def kill(proc_pid):
+    process = psutil.Process(proc_pid)
+    for proc in process.children(recursive=True):
+        proc.kill()
+    process.kill()
 
-    if isRecord:
-       # save_frame(image)
-        out.write(image)
-        image = add_record(image)
-
-    cv2.imshow("Hidden camera", image)
-    k = cv2.waitKey(30)
-    #r
-    if k == 114:
-        if not isRecord:
-            start_recording()
-            save_frame(image)
-            isRecord = True
-        else:
-            stop_recording()
-            size_record()
-            db_record.insert_record(numberCanal, "user", number - 1, str(filePath + '/Video_' + str(number - 1) + '.avi'), date_start, date_end, size_record(), 'avi', save_frame())
-            isRecord = False
-
-    if k == 27:
-        break
-
-frame.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    app.run(port=1235, host='0.0.0.0')
