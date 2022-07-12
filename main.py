@@ -9,6 +9,7 @@ import psutil
 from shlex import split
 import datetime
 import multiprocessing
+import client_record2db
 
 numberCanal = 1
 date_start = datetime.datetime.now()
@@ -82,6 +83,7 @@ def stop_recording(pr):
     pr.terminate()
    # os.kill(pr, signal.CTRL_C_EVENT)
     date_end = datetime.datetime.now()
+    client_record2db.insert_into_db(15,'sgd',12,'/sgaf','2022-07-06 14:07:14.300513','2022-07-06 14:07:14.300513',12,'avi','/ssfh')
     # f = open("name.txt", 'w')
     # number += 1
     # number1 = str(number)
@@ -111,4 +113,6 @@ def kill(proc_pid):
     process.kill()
 
 if __name__ == "__main__":
-    app.run(port=1235, host='0.0.0.0')
+    launch_start()
+    launch_end()
+   # app.run(port=1235, host='0.0.0.0')
