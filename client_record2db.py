@@ -1,6 +1,6 @@
 import json
 import requests
-def insert_into_db(channel: int, record_type: str, record1: int, record_path: str, datetime_start: str, datetime_stop: str,
+def insert_into_db(channel: int, record_type: str, id_record: str, record_path: str, datetime_start: str, datetime_stop: str,
                 record_length: float, record_extension: str, snapshot_path: str):
     api_url = 'http://192.168.35.57:1234/api_db_record'
     create_row_data = {
@@ -9,7 +9,7 @@ def insert_into_db(channel: int, record_type: str, record1: int, record_path: st
         "params": {
             "channel": channel,
             "record_type": f'{record_type}',
-            "record1": record1,
+            "id_record": f'{id_record}',
             "record_path": f'{record_path}',
             "datetime_start": f'{datetime_start}',
             "datetime_stop": f'{datetime_stop}',
